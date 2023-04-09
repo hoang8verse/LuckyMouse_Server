@@ -101,6 +101,7 @@ const LuckyMouseSocket = (server) => {
             // not present: do nothing
             if(! rooms[room][clientId]) return;
             let checkNewHost = "";
+            let playerRunningId = "";
             // if the one exiting is the last one, destroy the room
             if(Object.keys(rooms[room]).length === 1){
                 delete rooms[room];
@@ -119,6 +120,9 @@ const LuckyMouseSocket = (server) => {
                         }
                     });
                 }
+                if(rooms[room][clientId]["player"]["currentPlayerRunId"] == clientId){
+                    playerRunningId = clientId;
+                }
     
                 delete rooms[room][clientId];
             }
@@ -130,6 +134,7 @@ const LuckyMouseSocket = (server) => {
                         event : "playerLeaveRoom",
                         clientId : clientId,
                         newHost : checkNewHost,
+                        playerRunningId : playerRunningId,
                     }
                     let buffer = Buffer.from(JSON.stringify(params), 'utf8');
                     sock.sendBytes(buffer);
@@ -221,20 +226,13 @@ const LuckyMouseSocket = (server) => {
     
                     var player = new Player();
                     player.id = clientId;
-                    // player.playerName = "Player " + Object.keys(rooms[room]).length;
                     player.playerName = data.playerName;
                     player.userAppId = data.userAppId;
                     player.avatar = data.avatar;
                     player.room = room;
                     player.isSpectator = data.isSpectator;
                     player.gender = data.gender;
-                    // let ranGender = Math.floor(Math.random() * 5) % 2 == 0 ? "0" : "1";
-                    // console.log( "  ranGender ----------- " , ranGender)
-                    // player.gender = ranGender;
                     console.log( "  new player created  ----------- " , player)
-                    // let _pos = parseVector3(data.pos);
-                    // console.log("pos :   " , _pos);
-                    // player.position = _pos;
     
                     rooms[room][clientId]["player"] = player;// save player in room array
                     let players = [];
@@ -290,12 +288,7 @@ const LuckyMouseSocket = (server) => {
                     if(! rooms[room][clientId]) rooms[room][clientId] = connection; // join the room
 
                     var player = rooms[room][clientId]["player"];
-                    let _pos = parseVector3(data.pos);
-                    console.log("pos :   " , _pos);
-                    player.position = _pos;
                     player.isStarted = "1";
-                    console.log( "  new player created  ----------- " , player)
-                    player.characterIndex = data.characterIndex;
                    
                     rooms[room][clientId]["player"] = player;// save player in room array
                     let players = [];
@@ -304,11 +297,6 @@ const LuckyMouseSocket = (server) => {
                         players.push(sock.player);
                     });
                     player.isHost = data.isHost;
-                    // if(players.length == 1){
-                    //     player.isHost = "1";
-                    // } else {
-                    //     player.isHost = "0";
-                    // }
                     let params = {
                         event : "joinRoom",
                         clientId : clientId,
@@ -329,11 +317,16 @@ const LuckyMouseSocket = (server) => {
                 }
                 else if(meta === "startGame") {
     
-                    console.log("startGame  data ===========  " , data)
-                    let maxTime = parseFloat(data.maxTime);
+                    console.log("startGame  data ===========  " , data);
+                    let maxRound  = Math.floor(Math.random() * 5) + 10;
+                    Object.entries(rooms[room]).forEach(([, sock]) => {
+                        // console.log("leave leave sock aaaa ad=====  " , sock["player"]);
+                        rooms[room][sock["player"]["id"]]["player"]["maxRound"] = maxRound;
+                    });
                     let params = {
                         event : "startGame",
                         clientId : clientId,
+                        maxRound : maxRound
                     }
                     let buffer = Buffer.from(JSON.stringify(params), 'utf8');
                     console.log("startGame  buffer========  " , buffer)
@@ -342,14 +335,36 @@ const LuckyMouseSocket = (server) => {
                        sock.sendBytes(buffer)
                     });
                 }
-                else if(meta === "roundAlready") {
+                else if(meta === "requestNextRun") {
     
-                    console.log("roundAlready  data ===========  " , data)
+                    console.log("requestNextRun  data ===========  " , data)
+                    
+                    let ranPlayerRunIndex = Math.floor(Math.random() * Object.keys(rooms[room]).length);
+                    const arrayPlayers = Object.values(rooms[room]);
+                    let currentPlayerRun = arrayPlayers[ranPlayerRunIndex];
+                    console.log("currentPlayerRun  data ===========  " , currentPlayerRun["player"])
+                    let currentRunIndex = currentPlayerRun["player"]["currentIndex"] + 1;
+                    console.log("currentRunIndex ===========  " , currentRunIndex)
+                    let isFinalRun = "0";
+                    if(currentRunIndex == currentPlayerRun["player"]["maxRound"]){
+                        isFinalRun =  "1";
+                    }
+                    
+                    Object.entries(rooms[room]).forEach(([, sock]) => {
+                        // console.log("leave leave sock aaaa ad=====  " , sock["player"]);
+                        rooms[room][sock["player"]["id"]]["player"]["currentIndex"] = currentRunIndex;
+                        rooms[room][sock["player"]["id"]]["player"]["currentPlayerRunId"] = currentPlayerRun["player"]["id"]; 
+                    });
+
                     let params = {
-                        event : "roundAlready",
+                        event : "responseNextRun",
                         clientId : clientId,
+                        playerRunId : currentPlayerRun["player"]["id"],
+                        currentRunIndex : currentRunIndex,
+                        isFinalRun : isFinalRun,
                     }
                     let buffer = Buffer.from(JSON.stringify(params), 'utf8');
+                    // console.log("startGame  rooms[room]========  " , rooms[room])
                     Object.entries(rooms[room]).forEach(([, sock]) => {
                        sock.sendBytes(buffer)
                     });
@@ -373,108 +388,7 @@ const LuckyMouseSocket = (server) => {
                     }
 
                 }
-                else if(meta === "moving") {
-    
-                    console.log("moving moving data ===========  " , data)
-                    let _pos = parseVector3(data.pos);
-                    let _posVelocity = parseVector3(data.velocity);
-                    rooms[room][clientId]["player"]["position"] = _pos;
-                    // console.log("pos :   " , _pos);
-                    let params = {
-                        event : "moving",
-                        clientId : clientId,
-                        velocity : _posVelocity,
-                        h : data.h,
-                        v : data.v
-                        // pos : _pos
-                    }
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    Object.entries(rooms[room]).forEach(([, sock]) => {
-                       sock.sendBytes(buffer)
-                    });
-    
-                }
-                else if(meta === "hitEnemy") {
-    
-                    // console.log("moving moving data ===========  " , data)
-                    let _pos = parseVector3(data.hitPos);
-                    // rooms[room][clientId]["player"]["position"] = _pos;
-                    // console.log("pos :   " , _pos);
-                    let params = {
-                        event : "hitEnemy",
-                        clientId : clientId,
-                        hitEnemyId : data.enemyId,
-                        hitPos : _pos,
-                    }
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    Object.entries(rooms[room]).forEach(([, sock]) => {
-                       sock.sendBytes(buffer)
-                    });
-    
-                }
-                else if(meta === "stunned") {
-    
-                    // console.log("moving moving data ===========  " , data)
-                    let _pos = parseVector3(data.hitPos);
-                    // rooms[room][clientId]["player"]["position"] = _pos;
-                    // console.log("pos :   " , _pos);
-                    let params = {
-                        event : "stunned",
-                        clientId : clientId,
-                        stunnedByEnemyId : data.enemyId,
-                        hitPos : _pos,
-                    }
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    Object.entries(rooms[room]).forEach(([, sock]) => {
-                       sock.sendBytes(buffer)
-                    });
-    
-                }
-                else if(meta === "requestTarget") {
-    
-                    console.log("requestTarget  data ===========  " , data)
-                    let params = {
-                        event : "responseTarget",
-                        clientId : clientId,
-                        target : data.target,
-                        ran1 : data.ran1,
-                        ran2 : data.ran2,
-                        ran3 : data.ran3,
-                    }
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    Object.entries(rooms[room]).forEach(([, sock]) => {
-                       sock.sendBytes(buffer)
-                    });
-    
-                }
-                else if(meta === "cubeFall") {
-                    console.log("cubeFall  data ===========  " , data)
-                    let params = {
-                        event : "cubeFall",
-                        clientId : clientId,
-                    }
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    Object.entries(rooms[room]).forEach(([, sock]) => sock.sendBytes(buffer));
-                }
-                else if(meta === "cubeReset") {
-                    console.log("cubeReset  data ===========  " , data)
-                    let params = {
-                        event : "cubeReset",
-                        clientId : clientId,
-                    }
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    Object.entries(rooms[room]).forEach(([, sock]) => sock.sendBytes(buffer));
-                }
-                else if(meta === "roundPass") {
-                    rooms[room][clientId]["player"]["round"] = parseInt(data.round);
-                    // let params = {
-                    //     event : "roundPass",
-                    //     clientId : clientId,
-                    //     roundPass :  parseInt(data.round)
-                    // }
-                    // let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    // Object.entries(rooms[room]).forEach(([, sock]) => sock.sendBytes(buffer));
-                }
+                
                 else if(meta === "playerDie") {
                     console.log("playerDie data ========================= " + data);
                     rooms[room][clientId]["player"]["playerStatus"] = "die";
