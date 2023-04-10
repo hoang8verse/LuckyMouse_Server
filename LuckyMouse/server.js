@@ -359,6 +359,7 @@ const LuckyMouseSocket = (server) => {
                     let params = {
                         event : "responseNextRun",
                         clientId : clientId,
+                        playerRun : currentPlayerRun["player"],
                         playerRunId : currentPlayerRun["player"]["id"],
                         currentRunIndex : currentRunIndex,
                         isFinalRun : isFinalRun,
@@ -369,26 +370,6 @@ const LuckyMouseSocket = (server) => {
                        sock.sendBytes(buffer)
                     });
                 }
-                else if(meta === "countDown") {
-    
-                    console.log("countDown  data ===========  " , data)
-                    let timeCount = parseInt(data.timer) - 1;
-                    let params = {
-                        event : "countDown",
-                        clientId : clientId,
-                        timer : timeCount,
-                    }
-                    // console.log("countDown after  ==========  " , rooms[room][clientId]["player"])
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    if(rooms[room] && rooms[room][clientId]){
-                        Object.entries(rooms[room]).forEach(([, sock]) => {
-                            rooms[room][sock["player"]["id"]]["player"]["timer"] = timeCount;
-                           sock.sendBytes(buffer)
-                        });
-                    }
-
-                }
-                
                 else if(meta === "playerDie") {
                     console.log("playerDie data ========================= " + data);
                     rooms[room][clientId]["player"]["playerStatus"] = "die";
@@ -401,17 +382,6 @@ const LuckyMouseSocket = (server) => {
                     Object.entries(rooms[room]).forEach(([, sock]) => sock.sendBytes(buffer));
     
                 }
-                else if(meta === "playerWin") {
-                    rooms[room][clientId]["player"]["playerStatus"] = "win";
-                    rooms[room][clientId]["player"]["roundPass"] = parseInt(data.roundPass);
-                    let params = {
-                        event : "playerWin",
-                        clientId : clientId,
-                        playerStatus :  "win"
-                    }
-                    let buffer = Buffer.from(JSON.stringify(params), 'utf8');
-                    Object.entries(rooms[room]).forEach(([, sock]) => sock.sendBytes(buffer));
-                }
                 else if(meta === "endGame") {
     
                     let players = [];
@@ -422,6 +392,7 @@ const LuckyMouseSocket = (server) => {
                     let params = {
                         event : "endGame",
                         clientId : clientId,
+                        playerWin : rooms[room][clientId]["player"],
                         players :  players
                     }
                     let buffer = Buffer.from(JSON.stringify(params), 'utf8');
