@@ -318,7 +318,7 @@ const LuckyMouseSocket = (server) => {
                 else if(meta === "startGame") {
     
                     console.log("startGame  data ===========  " , data);
-                    let maxRound  = Math.floor(Math.random() * 5) + 10;
+                    let maxRound  = Math.floor(Math.random() * Object.keys(rooms[room]).length) + Object.keys(rooms[room]).length * 2;
                     Object.entries(rooms[room]).forEach(([, sock]) => {
                         // console.log("leave leave sock aaaa ad=====  " , sock["player"]);
                         rooms[room][sock["player"]["id"]]["player"]["maxRound"] = maxRound;
@@ -338,22 +338,31 @@ const LuckyMouseSocket = (server) => {
                 else if(meta === "requestNextRun") {
     
                     console.log("requestNextRun  data ===========  " , data)
-                    
-                    let ranPlayerRunIndex = Math.floor(Math.random() * Object.keys(rooms[room]).length);
+                    let lengthPlayers = Object.keys(rooms[room]).length;
+                    let currentIndex = rooms[room][clientId]["player"]["currentIndex"] + 1;
+                    if(currentIndex >= lengthPlayers){
+                        currentIndex = 0;
+                    }
+                    console.log("currentIndex  data ===========  " , currentIndex + " lengthPlayers == " , lengthPlayers)
                     const arrayPlayers = Object.values(rooms[room]);
-                    let currentPlayerRun = arrayPlayers[ranPlayerRunIndex];
+                    let currentPlayerRun = arrayPlayers[currentIndex];
+
+
                     console.log("currentPlayerRun  data ===========  " , currentPlayerRun["player"])
-                    let currentRunIndex = currentPlayerRun["player"]["currentIndex"] + 1;
-                    console.log("currentRunIndex ===========  " , currentRunIndex)
+
+
+                    let maxRoundRemain = currentPlayerRun["player"]["maxRound"] - 1;
+                    // console.log("currentRunIndex ===========  " , currentRunIndex)
                     let isFinalRun = "0";
-                    if(currentRunIndex == currentPlayerRun["player"]["maxRound"]){
+                    if(maxRoundRemain <= 0){
                         isFinalRun =  "1";
                     }
                     
                     Object.entries(rooms[room]).forEach(([, sock]) => {
                         // console.log("leave leave sock aaaa ad=====  " , sock["player"]);
-                        rooms[room][sock["player"]["id"]]["player"]["currentIndex"] = currentRunIndex;
+                        rooms[room][sock["player"]["id"]]["player"]["currentIndex"] = currentIndex;
                         rooms[room][sock["player"]["id"]]["player"]["currentPlayerRunId"] = currentPlayerRun["player"]["id"]; 
+                        rooms[room][sock["player"]["id"]]["player"]["maxRound"] = maxRoundRemain;
                     });
 
                     let params = {
@@ -361,7 +370,7 @@ const LuckyMouseSocket = (server) => {
                         clientId : clientId,
                         playerRun : currentPlayerRun["player"],
                         playerRunId : currentPlayerRun["player"]["id"],
-                        currentRunIndex : currentRunIndex,
+                        currentRunIndex : currentIndex,
                         isFinalRun : isFinalRun,
                     }
                     let buffer = Buffer.from(JSON.stringify(params), 'utf8');

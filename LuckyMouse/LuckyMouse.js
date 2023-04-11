@@ -11,7 +11,7 @@ module.exports = class Player {
         this.isSpectator = "0";
         this.playerStatus = "";
         this.currentPlayerRunId = "";
-        this.currentIndex = 0;
+        this.currentIndex = -1;
         this.maxRound = 0;
     }
     
