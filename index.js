@@ -29,10 +29,10 @@ var server = http.createServer(function(request, response) {
     response.end();
 });
 
-let path_key = 'private.key';
-let path_cert = 'server.crt';
-// let path_cert = '/etc/letsencrypt/live/rlgl2-api.brandgames.vn/fullchain.pem';
-// let path_key = '/etc/letsencrypt/live/rlgl2-api.brandgames.vn/privkey.pem';
+// let path_key = 'private.key';
+// let path_cert = 'server.crt';
+let path_cert = '/etc/letsencrypt/live/rlgl2-api.brandgames.vn/fullchain.pem';
+let path_key = '/etc/letsencrypt/live/rlgl2-api.brandgames.vn/privkey.pem';
 
 const options = {
   key: fs.readFileSync(path_key),
@@ -47,11 +47,11 @@ const serverSSL = https.createServer(options, function(request, response) {
 });
 
 
-server.listen(port, function() {
-    console.log((new Date()) + ' Server is listening on port ' + port);
-});
-// serverSSL.listen(port, function() {
-//   console.log((new Date()) + ' Server is listening on port ' + port);
+// server.listen(port, function() {
+//     console.log((new Date()) + ' Server is listening on port ' + port);
 // });
+serverSSL.listen(port, function() {
+  console.log((new Date()) + ' Server is listening on port ' + port);
+});
 
-LuckyMouseSocket(server);
+LuckyMouseSocket(serverSSL);
