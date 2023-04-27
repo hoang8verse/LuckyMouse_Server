@@ -109,6 +109,7 @@ const LuckyMouseSocket = (server) => {
             // otherwise simply leave the room
             else {
                 let isFindNewHost = false;
+                
                 if(rooms[room][clientId]["player"]["isHost"] == "1"){
                     Object.entries(rooms[room]).forEach(([, sock]) => {
                         // console.log("leave leave sock aaaa ad=====  " , sock["player"]);
@@ -118,10 +119,28 @@ const LuckyMouseSocket = (server) => {
                             isFindNewHost = true;
                             console.log(" new host ------  " , sock["player"]);
                         }
+                     
                     });
                 }
                 if(rooms[room][clientId]["player"]["currentPlayerRunId"] == clientId){
-                    playerRunningId = clientId;
+                    let newRuningId = "";
+                    Object.entries(rooms[room]).forEach(([, sock]) => {
+                        // console.log("leave leave sock aaaa ad=====  " , sock["player"]);                       
+                        if(sock["player"]["id"] != clientId){
+                            newRuningId = sock["player"]["id"];
+                        }
+                    });
+                    console.log(" new running ------  " , newRuningId);
+                    Object.entries(rooms[room]).forEach(([, sock]) => {
+                        console.log("newRuningId leave sock =====  " , sock["player"]);
+                        let params = {
+                            event : "newRuningId",
+                            clientId : clientId,
+                            playerRunningId : newRuningId,
+                        }
+                        let buffer = Buffer.from(JSON.stringify(params), 'utf8');
+                        sock.sendBytes(buffer);
+                    });
                 }
     
                 delete rooms[room][clientId];
