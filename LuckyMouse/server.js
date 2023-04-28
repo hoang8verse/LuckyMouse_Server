@@ -56,6 +56,8 @@ const LuckyMouseSocket = (server) => {
         }
         return response;
       }
+    const {enrichCDP, ingestCDP} = require('../CDP/cdp')
+
     
     const rooms = {};
     var Player = require('./LuckyMouse.js');
@@ -251,6 +253,8 @@ const LuckyMouseSocket = (server) => {
                     player.room = room;
                     player.isSpectator = data.isSpectator;
                     player.gender = data.gender;
+                    player.phoneNumber = data.phoneNumber;
+                    player.followedOA = data.followedOA;
                     console.log( "  new player created  ----------- " , player)
     
                     rooms[room][clientId]["player"] = player;// save player in room array
@@ -280,6 +284,12 @@ const LuckyMouseSocket = (server) => {
                         // console.log( "  sock ----------- " , sock.player)
     
                         sock.sendBytes(buffer);
+                    });
+
+                    enrichCDP({
+                        user : {
+                            userAppId : data.userAppId
+                        }
                     });
     
                 }
@@ -353,6 +363,25 @@ const LuckyMouseSocket = (server) => {
                     Object.entries(rooms[room]).forEach(([, sock]) => {
                        sock.sendBytes(buffer)
                     });
+
+                    // cdp event start game
+                    let player = rooms[room][clientId]["player"];
+                    let _state = {
+                        user : {
+                            userAppId : player.userAppId,
+                            userName : player.playerName,
+                            userPhone : player.phoneNumber,
+                            followedOA : player.followedOA == "0" ? false : true,
+                        }
+                    }
+                    let _data = {
+                        event : "startGame",
+                        eventState : {
+                            startGame : true
+                        },
+                        userEvent : "UserEvent"
+                    }
+                    ingestCDP(_state, _data);
                 }
                 else if(meta === "requestNextRun") {
     
@@ -425,6 +454,32 @@ const LuckyMouseSocket = (server) => {
                     }
                     let buffer = Buffer.from(JSON.stringify(params), 'utf8');
                     Object.entries(rooms[room]).forEach(([, sock]) => sock.sendBytes(buffer));
+
+                    
+                }
+                else if(meta === "eventCDP") {
+    
+                    let playerWinId =  data.playerWinId;
+                    // 
+                    let player = rooms[room][clientId]["player"];
+                    let _state = {
+                        user : {
+                            userAppId : player.userAppId,
+                            userName : player.playerName,
+                            userPhone : player.phoneNumber,
+                            zoaUserAvatar : player.avatar,
+                            followedOA : player.followedOA == "0" ? false : true,
+                        }
+                    }
+                    let _data = {
+                        event : "endGame",
+                        eventState : {
+                            endGame : true,
+                            userWin : player.id == playerWinId ? true : false,
+                        },
+                        userEvent : "UserEvent"
+                    }
+                    ingestCDP(_state, _data);
                 }
                 else if(meta === "leave") {
     

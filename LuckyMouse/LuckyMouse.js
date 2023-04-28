@@ -2,6 +2,8 @@ module.exports = class Player {
     constructor(){
         this.id = "";
         this.userAppId = "";
+        this.phoneNumber = "";
+        this.followedOA = "0";
         this.avatar = "";
         this.gender = "";
         this.playerName = "";
