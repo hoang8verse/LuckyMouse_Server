@@ -463,6 +463,7 @@ const LuckyMouseSocket = (server) => {
                     let playerWinId =  data.playerWinId;
                     // 
                     let player = rooms[room][clientId]["player"];
+                    let playerWinner = rooms[room][playerWinId]["player"];
                     let _state = {
                         user : {
                             userAppId : player.userAppId,
@@ -476,10 +477,12 @@ const LuckyMouseSocket = (server) => {
                         event : "endGame",
                         eventState : {
                             endGame : true,
-                            userWin : player.id == playerWinId ? true : false,
+                            isWon : player.id == playerWinId ? true : false,
+                            userWon : playerWinner.playerName
                         },
                         userEvent : "UserEvent"
                     }
+
                     ingestCDP(_state, _data);
                 }
                 else if(meta === "leave") {
