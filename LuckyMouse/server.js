@@ -371,6 +371,7 @@ const LuckyMouseSocket = (server) => {
                             userAppId : player.userAppId,
                             userName : player.playerName,
                             userPhone : player.phoneNumber,
+                            userAvatar : player.avatar,
                             followedOA : player.followedOA == "0" ? false : true,
                         }
                     }
@@ -467,7 +468,7 @@ const LuckyMouseSocket = (server) => {
                             userAppId : player.userAppId,
                             userName : player.playerName,
                             userPhone : player.phoneNumber,
-                            zoaUserAvatar : player.avatar,
+                            userAvatar : player.avatar,
                             followedOA : player.followedOA == "0" ? false : true,
                         }
                     }
